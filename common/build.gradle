@@ -1,0 +1,36 @@
+plugins {
+    id 'multiloader-common'
+    id 'net.neoforged.moddev.legacyforge'
+}
+
+legacyForge {
+    mcpVersion = project.minecraft_version
+
+    parchment {
+        minecraftVersion = project.parchment_minecraft_version
+        mappingsVersion = project.parchment_mappings_version
+    }
+}
+
+dependencies {
+    // //////////// Mixin ////////////
+    compileOnly "org.spongepowered:mixin:$mixin_version"
+    annotationProcessor "org.spongepowered:mixin:$mixin_version:processor"
+    testAnnotationProcessor "org.spongepowered:mixin:$mixin_version:processor"
+}
+
+configurations {
+    commonJava {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+    commonResources {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+}
+
+artifacts {
+    commonJava sourceSets.main.java.sourceDirectories.singleFile
+    commonResources sourceSets.main.resources.sourceDirectories.singleFile
+}
