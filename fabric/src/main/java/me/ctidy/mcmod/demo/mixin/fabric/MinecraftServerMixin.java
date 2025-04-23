@@ -38,7 +38,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(MinecraftServer.class)
 public abstract class MinecraftServerMixin {
 
-    @Inject(method = "<init>", at = @At("RETURN"))
+    @Inject(method = "loadLevel", at = @At("RETURN"))
     private void hello(CallbackInfo ci) {
         Constants.LOGGER.info("Hello from Fabric mixin!");
     }

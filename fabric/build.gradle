@@ -1,13 +1,19 @@
 plugins {
-    id 'multiloader-loader'
+    id 'xplat-loader'
     id 'fabric-loom'
 }
 
 // ////////////////////////////// Loom config //////////////////////////////
 loom {
-    // mixin {
-    //     defaultRefmapName.set("${mod_id}.refmap.json")
-    // }
+    def aw = project(":common").file("src/main/resources/${mod_id}.accesswidener")
+    if (aw.exists()) {
+        accessWidenerPath.set(aw)
+    }
+
+    mixin {
+        defaultRefmapName.set("${mod_id}.refmap.json")
+    }
+
     runs {
         configureEach {
             // Separate working directory of each runs
