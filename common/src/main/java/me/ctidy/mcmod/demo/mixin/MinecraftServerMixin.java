@@ -22,6 +22,7 @@
 
 package me.ctidy.mcmod.demo.mixin;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import me.ctidy.mcmod.demo.Constants;
 import net.minecraft.server.MinecraftServer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -41,6 +42,11 @@ public abstract class MinecraftServerMixin {
     @Inject(method = "loadLevel", at = @At("RETURN"))
     private void hello(CallbackInfo ci) {
         Constants.LOGGER.info("Hello from Common mixin!");
+    }
+
+    @Inject(method = "createLevels", at = @At("RETURN"))
+    private void isInDebug(CallbackInfo ci, @Local boolean flag) {
+        Constants.LOGGER.info("Is in debug: {}", flag);
     }
 
 }

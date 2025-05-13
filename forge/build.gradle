@@ -86,6 +86,14 @@ dependencies {
     annotationProcessor "org.spongepowered:mixin:$mixin_version:processor"
     testAnnotationProcessor "org.spongepowered:mixin:$mixin_version:processor"
 
+    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixin_extras_version"))
+    jarJar(implementation("io.github.llamalad7:mixinextras-forge:$mixin_extras_version")) {
+        version {
+            strictly project.mixin_extras_request
+            prefer project.mixin_extras_version
+        }
+    }
+
     // //////////// enough items ////////////
     // JEI
     modCompileOnly "mezz.jei:$jei_artifact_id-common-api:$jei_version"
