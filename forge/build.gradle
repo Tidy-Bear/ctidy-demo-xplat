@@ -3,11 +3,18 @@ plugins {
     id 'net.neoforged.moddev.legacyforge'
 }
 
+xplat.mixin {
+    refMaps.add "${mod_id}.refmap.json".toString()
+    configs.add "${mod_id}.mixins.json".toString()
+    configs.add "${mod_id}.forge.mixins.json".toString()  // comment it if no need
+    // mixinExtrasIncluding = false  // uncomment it if no need
+}
+
 // ////////////////////////////// MDG config //////////////////////////////
-mixin {
-    add sourceSets.main, "${mod_id}.refmap.json"
-    config "${mod_id}.mixins.json"
-    config "${mod_id}.forge.mixins.json"
+def mdg_mixin = mixin
+xplat.mixin {
+    refMaps.forEach { mdg_mixin.add sourceSets.main, it }
+    configs.forEach { mdg_mixin.config it }
 }
 
 legacyForge {
@@ -87,11 +94,14 @@ dependencies {
     testAnnotationProcessor "org.spongepowered:mixin:$mixin_version:processor"
 
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixin_extras_version"))
-    jarJar(implementation("io.github.llamalad7:mixinextras-forge:$mixin_extras_version")) {
+    def mixinExtras = implementation("io.github.llamalad7:mixinextras-forge:$mixin_extras_version") {
         version {
             strictly project.mixin_extras_request
             prefer project.mixin_extras_version
         }
+    }
+    if (xplat.mixin.mixinExtrasIncluding) {
+        jarJar mixinExtras
     }
 
     // //////////// enough items ////////////
@@ -165,7 +175,7 @@ dependencies {
     modRuntimeOnly "curse.maven:XaeroWorldmap-317780:$xaeroworldmap_version"
 }
 
-expandProps {
+xplat.expandableProperties {
     filter.add 'META-INF/mods.toml'
     props.putAll([
             'forge_version': forge_version,
@@ -176,7 +186,11 @@ expandProps {
 }
 
 jar {
+    def configs = xplat.mixin.configs
+    if (configs.isEmpty()) {
+        return
+    }
     manifest.attributes([
-            "MixinConfigs": "${mod_id}.mixins.json,${mod_id}.forge.mixins.json"
+            "MixinConfigs": String.join(',', configs)
     ])
 }

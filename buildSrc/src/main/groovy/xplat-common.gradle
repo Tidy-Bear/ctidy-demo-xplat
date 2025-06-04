@@ -51,7 +51,7 @@ dependencies {
 
 // Declare capabilities on the outgoing configurations.
 // https://docs.gradle.org/current/userguide/component_capabilities.html#sec:declaring-additional-capabilities-for-a-local-component
-['apiElements', 'runtimeElements', 'sourcesElements', /*'javadocElements'*/].each { variant ->
+['apiElements', 'runtimeElements', 'sourcesElements', /*'javadocElements'*/].forEach { String variant ->
     configurations."$variant".outgoing {
         capability("$group:${project.name}:$version")
         capability("$group:${base.archivesName.get()}:$version")
@@ -62,57 +62,115 @@ dependencies {
     }
 }
 
-def filter = ['pack.mcmeta', '*.mixins.json']
-def props = [
-        'version': version,
-        'group': project.group, //Else we target the task's group.
-        'mod_id': mod_id,
-        'mod_name': mod_name,
-        'description': project.description,
-        'license': license,
-        'credits': credits,
-        'author': author,
-        'resourcepack_format': resourcepack_format,
-        'datapack_format': datapack_format,
-
-        'java_version': java_version,
-        'mixin_version': mixin_version,
-        'minecraft_version': minecraft_version,
-]
-class ExpandPropertiesExtensions {
-    final List<String> filter = []
-    final Map<String, ?> props = [:]
+class MixinConfiguration {
+    final List<String> configs = []
+    final List<String> refMaps = []
+    boolean mixinExtrasIncluding = true
 }
-def extension = project.extensions.create('expandProps', ExpandPropertiesExtensions)
+
+class ExpandablePropertiesConfiguration {
+    private static final List<String> BUILTIN_KEYS = [
+            'mod_id',
+            'mod_name',
+            'license',
+            'credits',
+            'author',
+            'resourcepack_format',
+            'datapack_format',
+            'java_version',
+            'mixin_version',
+            'minecraft_version',
+    ]
+
+    final List<String> filter
+    final Map<String, ?> props
+
+    ExpandablePropertiesConfiguration(Project project) {
+        filter = ['pack.mcmeta', '*.mixins.json']
+        def projProps = project.properties
+        def props = [
+                'version': project.version,
+                'group': project.group,
+                'description': project.description,
+        ]
+        for (final def key in BUILTIN_KEYS) {
+            props[key] = key in projProps ? projProps[key] : ''
+        }
+        this.props = props
+    }
+}
+
+class XplatExtension {
+    private final MixinConfiguration mixinConfiguration
+    private final ExpandablePropertiesConfiguration expandablePropertiesConfiguration
+
+    XplatExtension(Project project) {
+        this.mixinConfiguration = new MixinConfiguration()
+        this.expandablePropertiesConfiguration = new ExpandablePropertiesConfiguration(project)
+    }
+
+    MixinConfiguration getMixin() {
+        return mixinConfiguration
+    }
+
+    void mixin(Closure<?> closure) {
+        closure.delegate = mixinConfiguration
+        closure()
+    }
+
+    void mixin(Action<MixinConfiguration> action) {
+        action(mixinConfiguration)
+    }
+
+    ExpandablePropertiesConfiguration getExpandableProperties() {
+        return expandablePropertiesConfiguration
+    }
+
+    void expandableProperties(Closure<?> closure) {
+        closure.delegate = expandablePropertiesConfiguration
+        closure()
+    }
+
+    void expandableProperties(Action<ExpandablePropertiesConfiguration> action) {
+        action(expandablePropertiesConfiguration)
+    }
+}
+def extXplat = project.extensions.create('xplat', XplatExtension)
+
 static void expandPropsToResources(ProcessResources task, Iterable<String> filter, Map<String, ?> props) {
     task.duplicatesStrategy = DuplicatesStrategy.INCLUDE
-    task.filesMatching(filter) {
+    task.filesMatching(filter) { FileCopyDetails details ->
         expand props
     }
     task.inputs.properties props
 }
-tasks.withType(ProcessResources).configureEach {
-    expandPropsToResources(it, filter + extension.filter, props + extension.props)
+tasks.withType(ProcessResources).configureEach { ProcessResources task ->
+    expandPropsToResources(task, extXplat.expandableProperties.filter, extXplat.expandableProperties.props)
+    def mixinConfigs = extXplat.mixin.configs
+    task.exclude { FileTreeElement elem ->
+        def name = elem.name
+        return name.endsWith('mixins.json') && !(mixinConfigs.contains(name))
+    }
 }
 
-tasks.withType(JavaCompile).configureEach {
-    options.release = Integer.parseInt(java_version)
-    options.encoding = 'UTF-8'
-    options.deprecation = false
+tasks.withType(JavaCompile).configureEach { JavaCompile task ->
+    task.options.release = Integer.parseInt(java_version)
+    task.options.encoding = 'UTF-8'
+    task.options.deprecation = false
 }
 
-static void eachLicences(Project project, Closure<?> closure) {
+static void eachLicences(Project project, Action<File> action) {
     project.fileTree(dir: project.rootDir, include: 'LICENSE*')
-            .files.each { closure(it) }
+            .files.each { File file -> action.execute(file) }
 }
 
-tasks.named('sourcesJar') {
+tasks.named('sourcesJar') { Task task ->
     eachLicences(rootProject) { File file ->
         jar.from(file)
     }
 }
 
-tasks.named('jar', Jar) {
+tasks.named('jar', Jar) { Jar task ->
     eachLicences(rootProject) { File file ->
         jar.from(file)
     }
@@ -127,7 +185,6 @@ tasks.named('jar', Jar) {
                 'Implementation-Vendor' : author,
                 'Built-On-Minecraft'    : minecraft_version,
                 'Implementation-Timestamp': new Date().format('yyyy-MM-dd\'T\'HH:mm:ssZ'),
-                // 'MixinConfigs': "${mod_id}.forge.mixins.json",
         ])
     }
 }

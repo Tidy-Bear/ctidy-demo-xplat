@@ -19,10 +19,7 @@
             "me.ctidy.mcmod.demo.fabric.FabricMain"
         ]
     },
-    "mixins": [
-        "${mod_id}.mixins.json",
-        "${mod_id}.fabric.mixins.json"
-    ],
+    "mixins": [ ${mixin_configs} ],
     "depends": {
         "fabricloader": "${fabric_loader_request}",
         "fabric-api": "${fabric_request}",

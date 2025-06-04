@@ -3,6 +3,12 @@ plugins {
     id 'fabric-loom'
 }
 
+xplat.mixin {
+    refMaps.add "${mod_id}.refmap.json".toString()
+    configs.add "${mod_id}.mixins.json".toString()
+    configs.add "${mod_id}.fabric.mixins.json".toString()  // comment it if no need
+}
+
 // ////////////////////////////// Loom config //////////////////////////////
 loom {
     def aw = project(":common").file("src/main/resources/${mod_id}.accesswidener")
@@ -11,7 +17,7 @@ loom {
     }
 
     mixin {
-        defaultRefmapName.set("${mod_id}.refmap.json")
+        xplat.mixin.refMaps.forEach { defaultRefmapName.set it }
     }
 
     runs {
@@ -125,9 +131,13 @@ dependencies {
     modLocalRuntime "curse.maven:XaeroWorldmap-317780:$xaeroworldmap_version"
 }
 
-expandProps {
+xplat.expandableProperties {
     filter.add 'fabric.mod.json'
+    def mixinConfigs = xplat.mixin.configs.isEmpty() ?
+            ''
+            : "\"${String.join('\", \"', xplat.mixin.configs)}\""
     props.putAll([
+            'mixin_configs': mixinConfigs,
             'fabric_loader_version': fabric_loader_version,
             'fabric_version': fabric_version,
             'java_request': java_request,
