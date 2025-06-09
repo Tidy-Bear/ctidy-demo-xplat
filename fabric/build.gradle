@@ -11,7 +11,8 @@ xplat.mixin {
 
 // ////////////////////////////// Loom config //////////////////////////////
 loom {
-    def aw = project(":common").file("src/main/resources/${mod_id}.accesswidener")
+    // don't forget to add it into `fabric.mod.json`
+    def aw = file("src/main/resources/${mod_id}.accesswidener")
     if (aw.exists()) {
         accessWidenerPath.set(aw)
     }

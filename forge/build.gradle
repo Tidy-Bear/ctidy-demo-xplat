@@ -25,9 +25,14 @@ legacyForge {
         mappingsVersion = project.parchment_mappings_version
     }
 
-    def at = project(':common').file('src/main/resources/META-INF/accesstransformer.cfg')
-    if (at.exists()) {
-        accessTransformers.from(at.absolutePath)
+    def atConfigs = [
+            project(':common').file('src/main/resources/META-INF/accesstransformer.cfg'),
+            // file('src/main/resources/META-INF/accesstransformer.cfg'),  // uncomment it if failed to be auto registered
+    ]
+    for (final at in atConfigs) {
+        if (at.exists()) {
+            accessTransformers.from(at.absolutePath)
+        }
     }
     // validateAccessTransformers = true
 
